@@ -1,0 +1,32 @@
+[project]
+name = "itksnap-dls"
+version = "0.0.1"
+authors = [
+  { name="Paul Yushkevich", email="pyushkevich@gmail.com" },
+]
+description = "ITK-SNAP interactive deep learning segmentation server"
+dependencies = [
+    'fastapi[standard]',
+    'nnInteractive',
+    'huggingface_hub'
+]
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Science/Research",
+    "Development Status :: 4 - Beta",
+    "Topic :: Scientific/Engineering :: Medical Science Apps."
+]
+
+[project.urls]
+Homepage = "https://github.com/pyushkevich/itksnap"
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["itksnap_dls" ]

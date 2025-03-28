@@ -1,0 +1,2 @@
+# Tangle-CNN Package
+This package contains Python scripts to train and apply weakly supervised segmentation models based on the WildCat algorothm (Durand, CVPR 2017) in the context of detection and segmentation of pathological inclusions, such as neurofibrillary tangles, in digital pathology images in neurodegenerative disorders. For additional details, please read (Yushkevich et al., Brain 2021), (Ravikumar et al., Nature Communications, 2024) and (Denning et al., Acta Neuropathologica, 2024).
