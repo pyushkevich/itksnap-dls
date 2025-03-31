@@ -4,6 +4,7 @@ from fastapi import FastAPI, UploadFile, File, Request, Response, HTTPException,
 from fastapi.routing import APIRoute
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse
+from importlib.metadata import version
 from .session import session_manager
 from .segment import SegmentSession
 import io
@@ -40,22 +41,30 @@ class ValidationErrorLoggingRoute(APIRoute):
 app = FastAPI()
 # app.router.route_class = ValidationErrorLoggingRoute
 
-@app.get("/")
-def read_root():
-    return {"Hello": "World"}
+# Ready-to-use session
+ready_session = None
 
-@app.get("/items/{item_id}")
-def read_item(item_id: int, q: Union[str, None] = None):
-    return {"item_id": item_id, "q": q}
+# Startup code - this establishes a ready-to-use session that will be assigned 
+# to the first incoming request. This ensures faster startup on the ITK-SNAP
+# side after the server has been launched
+def server_startup():
+    seg = SegmentSession()
+    ready_session = session_manager.create_session(seg)
+
+@app.get("/status")
+def check_status():
+    return {"status": "ok", "version": version("itksnap-dls")}
 
 @app.get("/start_session")
 def start_session():
     
-    # Create a segmentation session    
-    seg = SegmentSession('/data/pauly2/tk/nninter/test/mymodels/nnInteractive_v1.0')
-    
-    # Associate it with the id
-    session_id = session_manager.create_session(seg)
+    # Create a segmentation session   
+    if ready_session is not None:
+        session_id = ready_session
+        ready_session = None
+    else: 
+        seg = SegmentSession()
+        session_id = session_manager.create_session(seg)
     
     return {"session_id": session_id}
 

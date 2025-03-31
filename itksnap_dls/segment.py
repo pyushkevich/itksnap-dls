@@ -1,5 +1,5 @@
 from nnInteractive.inference.inference_session import nnInteractiveInferenceSession
-from huggingface_hub import snapshot_download
+from huggingface_hub import snapshot_download, configure_http_backend
 import torch
 import SimpleITK as sitk
 import os
@@ -17,7 +17,7 @@ global_config = SegmentServerConfig()
 
 def backend_factory() -> requests.Session:
     session = requests.Session()
-    session.verify = global_config.https_verify
+    session.verify = not global_config.https_verify
     return session
 
 class SegmentSession:
@@ -38,13 +38,19 @@ class SegmentSession:
         )
         
         # Set it as the default session factory - to allow -k flag
-        requests.configure_http_backend(backend_factory=backend_factory)
+        configure_http_backend(backend_factory=backend_factory)
 
         # Download the model, optionally
         self.model_path = snapshot_download(
             repo_id=self.NNINTERACTIVE_REPO_ID,
             allow_patterns=[f"{self.NNINTERACTIVE_MODEL_NAME}/*"],
             local_dir=config.hf_models_path)
+        
+        # Append the model name
+        self.model_path = os.path.join(self.model_path, self.NNINTERACTIVE_MODEL_NAME)
+
+        # Print where the model was downloaded to
+        print(f'nnInteractive model available in {self.model_path}')
         
         # Load the model
         self.session.initialize_from_trained_model_folder(self.model_path)

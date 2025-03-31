@@ -1,6 +1,6 @@
 import uvicorn
 import argparse
-from .server import app
+from .server import app, server_startup
 from .segment import global_config
 import torch.cuda
 
@@ -17,7 +17,7 @@ def get_args():
 
     # Optional hostname
     parser.add_argument(
-        "--host", '-h',
+        "--host", '-H',
         type=str,
         default="0.0.0.0",
         help="Hostname for the server (default: 0.0.0.0)"
@@ -52,4 +52,5 @@ if __name__ == "__main__":
     global_config.device = args.device
     global_config.hf_models_path = args.models_path
     global_config.https_verify = args.insecure
+    server_startup()
     uvicorn.run(app, host=args.host, port=args.port)
