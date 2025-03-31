@@ -18,7 +18,7 @@ import gzip
 import time
 import json
 
-
+# API debugging
 class ValidationErrorLoggingRoute(APIRoute):
     def get_route_handler(self) -> Callable:
         original_route_handler = super().get_route_handler()
@@ -58,32 +58,6 @@ def start_session():
     session_id = session_manager.create_session(seg)
     
     return {"session_id": session_id}
-
-
-@app.post("/upload_nifti/{session_id}")
-async def upload_nifti(session_id: str, filename:str, myfile: UploadFile = File(...)):
-    
-    # Get the current segmentator session
-    seg = session_manager.get_session(session_id)
-    if seg is None:
-       return {"error": "Invalid session"}
-
-    # Read file into memory
-    contents = await myfile.read()
-    
-    # Write to a temporary location
-    with tempfile.NamedTemporaryFile(suffix=filename, delete=False) as temp_file:
-        fn_temp = temp_file.name
-        temp_file.write(contents)
-        temp_file.flush()
-        temp_file.close()
-        
-        # Load NIFTI using SimpleITK
-        sitk_image = sitk.ReadImage(fn_temp)
-        seg.set_image(sitk_image)
-
-        # Store in session
-        return {"message": "NIFTI file uploaded and stored in GPU memory"}        
 
 
 def read_sitk_image(contents, metadata):

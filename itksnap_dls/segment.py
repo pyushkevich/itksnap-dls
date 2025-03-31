@@ -1,24 +1,54 @@
 from nnInteractive.inference.inference_session import nnInteractiveInferenceSession
+from huggingface_hub import snapshot_download
 import torch
 import SimpleITK as sitk
+import os
+import requests
+
+# Server configuration
+class SegmentServerConfig:
+    hf_models_path: str = None
+    device: str = None
+    n_cpu_threads = 2
+    https_verify = True
+
+# Global config
+global_config = SegmentServerConfig()
+
+def backend_factory() -> requests.Session:
+    session = requests.Session()
+    session.verify = global_config.https_verify
+    return session
 
 class SegmentSession:
     
-    def __init__(self, model_path):
+    NNINTERACTIVE_REPO_ID = "nnInteractive/nnInteractive"
+    NNINTERACTIVE_MODEL_NAME = "nnInteractive_v1.0"  
+    
+    def __init__(self, config: SegmentServerConfig = global_config):
         
         # Create an interactive session
         self.session = nnInteractiveInferenceSession(
-            device=torch.device("cuda"),  
+            device=config.device,
             use_torch_compile=False,
             verbose=False,
-            torch_n_threads=2,
+            torch_n_threads=config.n_cpu_threads,
             do_autozoom=True,
             use_pinned_memory=True
         )
         
+        # Set it as the default session factory - to allow -k flag
+        requests.configure_http_backend(backend_factory=backend_factory)
+
+        # Download the model, optionally
+        self.model_path = snapshot_download(
+            repo_id=self.NNINTERACTIVE_REPO_ID,
+            allow_patterns=[f"{self.NNINTERACTIVE_MODEL_NAME}/*"],
+            local_dir=config.hf_models_path)
+        
         # Load the model
-        self.session.initialize_from_trained_model_folder(model_path)
-        print(f'MODEL INITIALIZED')
+        self.session.initialize_from_trained_model_folder(self.model_path)
+
         
     def set_image(self, sitk_image):
         
