@@ -1,5 +1,6 @@
 import uvicorn
 import argparse
+import socket
 from .server import app, server_startup
 from .segment import global_config
 import torch.cuda
@@ -47,10 +48,39 @@ def get_args():
     return parser.parse_args()
 
 
+def get_access_urls(host: str, port: int):
+    """Generate a list of URLs based on the system's network interfaces."""
+    urls = []
+    
+    if host in ["0.0.0.0", "::"]:
+        # Get all network interfaces
+        hostname = socket.gethostname()
+        local_ips = socket.getaddrinfo(hostname, None)
+        unique_ips = set(ip[-1][0] for ip in local_ips)
+        
+        for ip in unique_ips:
+            protocol = "http"  # Change to https if needed
+            urls.append(f"{protocol}://{ip}:{port}")
+
+    else:
+        urls.append(f"http://{host}:{port}")
+
+    return urls
+
+
 if __name__ == "__main__":
     args = get_args()
     global_config.device = args.device
     global_config.hf_models_path = args.models_path
     global_config.https_verify = args.insecure
+
+    # Print how to access the server
+    print(f'************ ITK-SNAP Deep Learning Extensions Server ************')
+    urls = get_access_urls(args.host, port=args.port)
+    print(f'Use one of the following URLs to access the server from ITK-SNAP:')
+    for url in urls:
+        print(f'    {url}')
+    print(f'******************************************************************')
+
     server_startup()
     uvicorn.run(app, host=args.host, port=args.port)
