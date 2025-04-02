@@ -11,3 +11,5 @@ This Python package interfaces with `ITK-SNAP <http://itksnap.org/>`_ to allow f
    :maxdepth: 2
    :caption: Contents:
 
+   quick_start.md
+

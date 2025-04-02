@@ -29,7 +29,7 @@ class SegmentSession:
         
         # Create an interactive session
         self.session = nnInteractiveInferenceSession(
-            device=config.device,
+            device=torch.device(config.device),
             use_torch_compile=False,
             verbose=False,
             torch_n_threads=config.n_cpu_threads,

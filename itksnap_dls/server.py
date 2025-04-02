@@ -57,11 +57,13 @@ def check_status():
 
 @app.get("/start_session")
 def start_session():
+    global ready_session
     
     # Create a segmentation session   
     if ready_session is not None:
         session_id = ready_session
         ready_session = None
+        print(f'Session {session_id}: reusing ready_session')
     else: 
         seg = SegmentSession()
         session_id = session_manager.create_session(seg)
