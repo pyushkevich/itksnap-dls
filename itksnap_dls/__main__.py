@@ -1,7 +1,8 @@
 import uvicorn
 import argparse
 import socket
-from .server import app, server_startup
+import ipaddress
+from .server import app
 from .segment import global_config
 import torch.cuda
 
@@ -47,8 +48,49 @@ def get_args():
 
     return parser.parse_args()
 
+def print_gpu_info():
+    if torch.cuda.is_available():
+        device = torch.device("cuda")
+        gpu_name = torch.cuda.get_device_name(device)
+        gpu_index = torch.cuda.current_device()
+        print(f"    Using GPU {gpu_index}: {gpu_name}")
+    else:
+        print(f"    No GPU available, using CPU.")
+
+def print_banner(host: str, port: int):
+    print(f'***************** ITK-SNAP Deep Learning Extensions Server ******************')
+
+    print_gpu_info()
+    urls = []
+    
+    # Get all network interfaces
+    hostname = socket.gethostname()
+    local_ips = socket.getaddrinfo(hostname, None)
+    unique_ips = set(ip[-1][0] for ip in local_ips)
+    
+    for ip in unique_ips:
+        ip_obj = ipaddress.ip_address(ip)
+        if ip_obj.is_loopback:
+            urls.append([ip, port, True])
+            urls.append(['localhost', port, True])
+        else:
+            urls.append([ip, port, False])
+            urls.append([socket.getfqdn(ip), port, False])
+
+    usort = sorted(set(tuple(x) for x in urls))
+    print(f'    Use one of the following settings in ITK-SNAP to connect to this server:')
+    for url in list([x for x in usort if x[2] is False]):
+        print(f'        Server: {url[0]:40s}  Port: {url[1]}')
+    for url in list([x for x in usort if x[2] is True]):
+        print(f'        Server: {url[0]:40s}  Port: {url[1]}  †')
+    print(f'        †: only works if ITK-SNAP is running on the same computer')
+
+    print(f'******************************************************************************')
+
+
 
 def get_access_urls(host: str, port: int):
+
     """Generate a list of URLs based on the system's network interfaces."""
     urls = []
     
@@ -59,11 +101,10 @@ def get_access_urls(host: str, port: int):
         unique_ips = set(ip[-1][0] for ip in local_ips)
         
         for ip in unique_ips:
-            protocol = "http"  # Change to https if needed
-            urls.append(f"{protocol}://{ip}:{port}")
+            urls.append([ip, port])
 
     else:
-        urls.append(f"http://{host}:{port}")
+        urls.append([host, port])
 
     return urls
 
@@ -75,12 +116,6 @@ if __name__ == "__main__":
     global_config.https_verify = args.insecure
 
     # Print how to access the server
-    print(f'************ ITK-SNAP Deep Learning Extensions Server ************')
-    urls = get_access_urls(args.host, port=args.port)
-    print(f'Use one of the following URLs to access the server from ITK-SNAP:')
-    for url in urls:
-        print(f'    {url}')
-    print(f'******************************************************************')
+    print_banner(args.host, port=args.port)
 
-    server_startup()
     uvicorn.run(app, host=args.host, port=args.port)

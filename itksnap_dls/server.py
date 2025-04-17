@@ -1,23 +1,18 @@
-from typing import Union, Callable, List
-from pydantic import BaseModel
+from typing import Callable
 from fastapi import FastAPI, UploadFile, File, Request, Response, HTTPException, Form
 from fastapi.routing import APIRoute
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import FileResponse
 from importlib.metadata import version
-from .session import session_manager
+from .session import session_manager, PREPARED_SESSION_ID
 from .segment import SegmentSession
-import io
 import SimpleITK as sitk
-import torch
-import tempfile
-import os
-import logging
 import base64
 import numpy as np
 import gzip
 import time
 import json
+import asyncio
+from contextlib import asynccontextmanager
 
 # API debugging
 class ValidationErrorLoggingRoute(APIRoute):
@@ -38,36 +33,45 @@ class ValidationErrorLoggingRoute(APIRoute):
 
         return custom_route_handler
 
-app = FastAPI()
-# app.router.route_class = ValidationErrorLoggingRoute
-
-# Ready-to-use session
-ready_session = None
-
 # Startup code - this establishes a ready-to-use session that will be assigned 
 # to the first incoming request. This ensures faster startup on the ITK-SNAP
 # side after the server has been launched
-def server_startup():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup logic
+    session_manager.create_session(
+        asyncio.create_task(create_segment_session()), 
+        PREPARED_SESSION_ID)
+    yield
+    
+app = FastAPI(lifespan=lifespan)
+# app.router.route_class = ValidationErrorLoggingRoute
+
+# This is a task that creates a new segmentation session
+async def create_segment_session():
+    t0 = time.perf_counter()
     seg = SegmentSession()
-    ready_session = session_manager.create_session(seg)
+    t1 = time.perf_counter()
+    print(f'SegmentSession created in {(t1-t0):0.6f} seconds')
+    return seg    
 
 @app.get("/status")
 def check_status():
     return {"status": "ok", "version": version("itksnap-dls")}
 
 @app.get("/start_session")
-def start_session():
-    global ready_session
+async def start_session():
+
+    # Grab a hopefully existing prepared segmentation session and assign to client session
+    prepseg = await session_manager.get_session(PREPARED_SESSION_ID)    
+    session_id = session_manager.create_session(prepseg)
     
-    # Create a segmentation session   
-    if ready_session is not None:
-        session_id = ready_session
-        ready_session = None
-        print(f'Session {session_id}: reusing ready_session')
-    else: 
-        seg = SegmentSession()
-        session_id = session_manager.create_session(seg)
-    
+    # Schedule another prepared session to be created
+    session_manager.create_session(
+        asyncio.create_task(create_segment_session()), 
+        PREPARED_SESSION_ID)
+
+    # Return the session id    
     return {"session_id": session_id}
 
 
@@ -77,7 +81,6 @@ def read_sitk_image(contents, metadata):
     array = np.frombuffer(contents_raw, dtype=np.float32)
 
     # Reshape the array
-    print(f'Metadata: {metadata}')
     metadata_dict = json.loads(metadata)
     dim = metadata_dict['dimensions'][::-1]
     array = array.reshape(dim)
@@ -99,10 +102,15 @@ async def upload_raw(session_id: str, file: UploadFile = File(...), metadata: st
 
     # Read file into memory
     contents_gzipped = await file.read()
+    t0 = time.perf_counter()
     sitk_image = read_sitk_image(contents_gzipped, metadata)
+    t1 = time.perf_counter()
     
     # Load NIFTI using SimpleITK
     seg.set_image(sitk_image)
+    t2 = time.perf_counter()
+    
+    print(f'Image received\n  t[decode] = {t1-t0:0.6f}\n  t[set_image] = {t2-t1:0.6f}')
 
     # Store in session
     return {"message": "NIFTI file uploaded and stored in GPU memory"}        

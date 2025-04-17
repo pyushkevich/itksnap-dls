@@ -1,12 +1,19 @@
 ITK-SNAP DLS Quick Start
 ========================
-ITK-SNAP DLS is in early development stages. Please bookmark this page and check for updates.
+ITK-SNAP DLS is in active development. Please bookmark this page and check for updates.
 
 Overview
 --------
-This extension allows you to take advantage of powerful AI-based interactive segmentation tools provided by [nnInteractive](https://github.com/MIC-DKFZ/nnInteractive) directly from ITK-SNAP. In mere seconds, scribbles drawn using the ITK-SNAP paintbrush are transformed into complex 3D segmentations.
+This extension allows you to take advantage of powerful AI-based interactive segmentation tools provided by [nnInteractive](https://github.com/MIC-DKFZ/nnInteractive) directly from [ITK-SNAP](https://itksnap.org). In seconds, scribbles drawn using the ITK-SNAP paintbrush are transformed into complex 3D segmentations.
 
 ![ITK-SNAP DLS diagram](images/itksnap_dls.png)
+
+*If you use this feature for published work, please cite the most recent **nnInteractive** publication from Isensee et al.* Currently, the suggested citation is:
+
+> Isensee, F.\*, Rokuss, M.\*, Krämer, L.\*, Dinkelacker, S., Ravindran, A., Stritzke, F., Hamm, B., Wald, T., Langenberg, M., Ulrich, C., Deissler, J., Floca, R., & Maier-Hein, K. (2025). nnInteractive: Redefining 3D Promptable Segmentation. https://arxiv.org/abs/2503.08373 \
+> *: equal contribution
+
+Link: [![arXiv](https://img.shields.io/badge/arXiv-2503.08373-b31b1b.svg)](https://arxiv.org/abs/2503.08373)
 
 Requirements
 ------------
@@ -46,11 +53,15 @@ The first time you run this command, [nnInteractive](https://github.com/MIC-DKFZ
 
 ```
 $ python -m itksnap_dls 
-************ ITK-SNAP Deep Learning Extensions Server ************
-Use one of the following URLs to access the server from ITK-SNAP:
-    http://127.0.1.1:8911
-    http://10.150.40.44:8911
-******************************************************************
+***************** ITK-SNAP Deep Learning Extensions Server ******************
+    Using GPU 0: NVIDIA RTX A6000
+    Use one of the following settings in ITK-SNAP to connect to this server:
+        Server: 10.150.40.44                              Port: 8911
+        Server: lambda-clam                               Port: 8911
+        Server: 127.0.1.1                                 Port: 8911  †
+        Server: localhost                                 Port: 8911  †
+        †: only works if ITK-SNAP is running on the same computer
+******************************************************************************
 ```
 
 Connecting to DLS from ITK-SNAP
@@ -60,8 +71,9 @@ The deep learniing segmentation extension in ITK-SNAP is accessed under the pain
 
 ![Dialog Window](images/itksnap_dls_dialog.png)
 
-Pressing "Yes, configure" will open the Preferences Dialog, "AI Extensions" page, where you can enter the URL from Step 2. If successful, you will see a green "Connected" message under server status.
+Pressing "Yes, configure" will open the Preferences Dialog, "AI Extensions" page. Press the **New...** button to open a dialog where you can enter the server address and port, as shown below. If successful, you will see a green "Connected" message under server status.
 
+![Config window](images/dlsconfig_edit.png)
 ![Config window](images/dlsconfig.png)
 
 If you get a red error message instead, please see troubleshooting below.
@@ -72,6 +84,11 @@ Using nnInteractive from ITK-SNAP
 * Just draw with the "AI" paintbrush. Your scribbles will be converted by **nnInteractive** to 3D segmentations. You can use the left mouse button to label pixels that should belong to the structure of interest, and right mouse button to label pixels that should be removed from the structure. When you change the active label, the **nnInteractive** interaction state is reset -- as if you are starting a new segmentation. 
 
 ![Interaction example](images/interaction.png)
+
+* ITK-SNAP currently supports two types of **nnInteractive** interactions:
+    * **Point interaction:** when you click once using the paintbrush
+    * **Scribble interaction:** when you draw using the paintbrush (press, drag, and release) 
+
 
 Troubleshooting
 ---------------
@@ -95,18 +112,22 @@ Troubleshooting
 
 Errors are likely caused by a firewall on your server. Some options to resolve this are:
 
-* If `itksnap-dls` prints out more than one URL that can be used, try them all. URLs like `http://127.0.0.1:8911` should be used when ITK-SNAP and `itksnap-dls` are running on the same machine. Other URLs, like `http://10.150.40.44:8911` are meant to be used when `itksnap-dls` is running on a remote machine. 
+* If `itksnap-dls` prints out more than one server/port pairs that can be used, try them all. Server address `127.0.0.1` should be used when ITK-SNAP and `itksnap-dls` are running on the same machine. Other server addresses, like `10.150.40.44` are meant to be used when `itksnap-dls` is running on a remote machine. 
 
-* Ask the system administrator to open the port being used by `itksnap-dls`, e.g., port 8911 or whatever port number you provide using the `-p` option. 
+* Ask the system administrator to open the port being used by `itksnap-dls` on the GPU server, e.g., port 8911 or whatever port number you provide using the `-p` option. 
 
-* Use secure shell (SSH) tunneling. This feature is provided by the command-line program `ssh.exe` (Windows) or `ssh` (MacOS/Linux). Open a terminal window on the computer running ITK-SNAP, and run the command
+* Use secure shell (SSH) tunneling built into ITK-SNAP. This is a very experimental feature in ITK-SNAP. Check the SSH tunnel button when setting up the server in ITK-SNAP and enter the username you use to login to the GPU server. ITK-SNAP will attempt to open a secure shell connection to the GPU server and to use this connecting to send data to `itksnap-dls`. You may be prompted for your password. ITK-SNAP currently does not store this password, and if we will in the future, it will use your operating system's keychain.
+
+![Config window](images/dlsconfig_ssh.png)
+
+* Use SSH tunneling using an external program. This feature is provided by the command-line program `ssh.exe` (Windows) or `ssh` (MacOS/Linux). Open a terminal window on the computer running ITK-SNAP, and run the command
 
         ssh username@servername -L 8891:localhost:8891
 
     For example
 
-        ssh pauly@10.150.40.44 -L 8891:localhost:8891
+        ssh picsluser@lambda-clam -L 8891:localhost:8891
 
-    As long as the SSH session is active, all traffic to your local machine's port 8891 will be forwarded to the server. In ITK-SNAP, you would now use the URK `http://localhost:8891` to connect to the server.
+    As long as the SSH session is active, all traffic to your local machine's port 8891 will be forwarded to the server. In ITK-SNAP, you would now use the server `localhost` and port `8891` to connect to the server.
 
 

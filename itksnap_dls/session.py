@@ -1,12 +1,15 @@
 import torch
 import uuid
 
+PREPARED_SESSION_ID="prepared_session_id"
+
 class SessionManager:
+    
     def __init__(self):
         self.sessions = {}
 
-    def create_session(self, session_data):
-        session_id = str(uuid.uuid4())
+    def create_session(self, session_data, user_session_id=str(uuid.uuid4())):
+        session_id = user_session_id
         self.sessions[session_id] = session_data
         return session_id
 
