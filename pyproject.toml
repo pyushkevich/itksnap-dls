@@ -1,6 +1,6 @@
 [project]
 name = "itksnap-dls"
-version = "0.0.3"
+version = "0.0.4"
 authors = [
   { name="Paul Yushkevich", email="pyushkevich@gmail.com" },
 ]

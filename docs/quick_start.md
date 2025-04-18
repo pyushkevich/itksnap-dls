@@ -6,8 +6,6 @@ Overview
 --------
 This extension allows you to take advantage of powerful AI-based interactive segmentation tools provided by [nnInteractive](https://github.com/MIC-DKFZ/nnInteractive) directly from [ITK-SNAP](https://itksnap.org). In seconds, scribbles drawn using the ITK-SNAP paintbrush are transformed into complex 3D segmentations.
 
-![ITK-SNAP DLS diagram](images/itksnap_dls.png)
-
 *If you use this feature for published work, please cite the most recent **nnInteractive** publication from Isensee et al.* Currently, the suggested citation is:
 
 > Isensee, F.\*, Rokuss, M.\*, Krämer, L.\*, Dinkelacker, S., Ravindran, A., Stritzke, F., Hamm, B., Wald, T., Langenberg, M., Ulrich, C., Deissler, J., Floca, R., & Maier-Hein, K. (2025). nnInteractive: Redefining 3D Promptable Segmentation. https://arxiv.org/abs/2503.08373 \
@@ -18,6 +16,9 @@ Link: [![arXiv](https://img.shields.io/badge/arXiv-2503.08373-b31b1b.svg)](https
 Requirements
 ------------
 A computer with an NVidia GPU and Python is required. This can be the same computer on which you run ITK-SNAP or another computer on your local network. We will refer to this computer as the "GPU server".
+
+![ITK-SNAP DLS diagram](images/itksnap_dls.png)
+
 
 Installation on GPU Server
 --------------------------
@@ -85,9 +86,12 @@ Using nnInteractive from ITK-SNAP
 
 ![Interaction example](images/interaction.png)
 
-* ITK-SNAP currently supports two types of **nnInteractive** interactions:
+* You can also enable "AI mode" for the polygon tool. Your polygons will be sent to **nnInteractive** and treated as lasso interactions.
+
+* ITK-SNAP currently supports three types of **nnInteractive** interactions:
     * **Point interaction:** when you click once using the paintbrush
     * **Scribble interaction:** when you draw using the paintbrush (press, drag, and release) 
+    * **Lasso interaction:** when you draw using the polygon tool with AI mode enabled 
 
 
 Troubleshooting

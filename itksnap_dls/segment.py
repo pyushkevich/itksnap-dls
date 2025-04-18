@@ -80,6 +80,10 @@ class SegmentSession:
         img = sitk.GetArrayFromImage(sitk_image)      
         self.session.add_scribble_interaction(img, include_interaction=include_interaction)
     
+    def add_lasso_interaction(self, sitk_image, include_interaction):  
+        img = sitk.GetArrayFromImage(sitk_image)      
+        self.session.add_lasso_interaction(img, include_interaction=include_interaction)
+    
     def reset_interactions(self):
         self.target_tensor = torch.zeros(self.target_tensor.shape, dtype=torch.uint8)
         self.session.set_target_buffer(self.target_tensor)
