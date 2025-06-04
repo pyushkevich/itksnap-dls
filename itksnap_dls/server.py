@@ -12,6 +12,7 @@ import gzip
 import time
 import json
 import asyncio
+import logging
 from contextlib import asynccontextmanager
 
 # API debugging
@@ -40,7 +41,8 @@ async def create_segment_session():
     t0 = time.perf_counter()
     seg = SegmentSession()
     t1 = time.perf_counter()
-    print(f'SegmentSession created in {(t1-t0):0.6f} seconds')
+    logging.getLogger("uvicorn.info").info(
+        f'nnInteractive session initialized in {(t1-t0):0.2f} seconds')
     return seg    
 
 # Asychronous routine to create a startup session - this should be able to run in 
@@ -48,20 +50,16 @@ async def create_segment_session():
 # faster
 def create_startup_session():
     task = asyncio.create_task(create_segment_session())
-    print("Created task using create_segment_session()")
-    print(task)
     session_manager.create_session(task, PREPARED_SESSION_ID)
 
 # Create a lifestyle function
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     create_startup_session()
-    print("Startup event triggered: prepared segmentation session created.")
     yield
 
 # Create the app
 app = FastAPI(lifespan=lifespan)
-print("FastAPI app created with lifespan context manager.")
 
 @app.get("/status")
 def check_status():

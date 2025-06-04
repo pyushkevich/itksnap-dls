@@ -26,6 +26,11 @@ class SegmentSession:
     
     def __init__(self, config: SegmentServerConfig = global_config):
         
+        # Set the environment variables so that nnUnet does not complain
+        os.environ['nnUNet_raw'] = '/nnUNet_raw'
+        os.environ['nnUNet_preprocessed'] = '/nnUNet_preprocessed'
+        os.environ['nnUNet_results'] = '/nnUNet_results'
+        
         # Import nnInteractiveInferenceSession here to prevent slow startup
         from nnInteractive.inference.inference_session import nnInteractiveInferenceSession
         
