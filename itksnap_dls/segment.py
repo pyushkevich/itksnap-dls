@@ -1,4 +1,3 @@
-from nnInteractive.inference.inference_session import nnInteractiveInferenceSession
 from huggingface_hub import snapshot_download, configure_http_backend
 import torch
 import SimpleITK as sitk
@@ -26,6 +25,9 @@ class SegmentSession:
     NNINTERACTIVE_MODEL_NAME = "nnInteractive_v1.0"  
     
     def __init__(self, config: SegmentServerConfig = global_config):
+        
+        # Import nnInteractiveInferenceSession here to prevent slow startup
+        from nnInteractive.inference.inference_session import nnInteractiveInferenceSession
         
         # Create an interactive session
         self.session = nnInteractiveInferenceSession(

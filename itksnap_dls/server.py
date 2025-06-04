@@ -33,18 +33,6 @@ class ValidationErrorLoggingRoute(APIRoute):
 
         return custom_route_handler
 
-# Startup code - this establishes a ready-to-use session that will be assigned 
-# to the first incoming request. This ensures faster startup on the ITK-SNAP
-# side after the server has been launched
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Startup logic
-    session_manager.create_session(
-        asyncio.create_task(create_segment_session()), 
-        PREPARED_SESSION_ID)
-    yield
-    
-app = FastAPI(lifespan=lifespan)
 # app.router.route_class = ValidationErrorLoggingRoute
 
 # This is a task that creates a new segmentation session
@@ -54,6 +42,26 @@ async def create_segment_session():
     t1 = time.perf_counter()
     print(f'SegmentSession created in {(t1-t0):0.6f} seconds')
     return seg    
+
+# Asychronous routine to create a startup session - this should be able to run in 
+# parallel with the FastAPI app startup, so that the first request can be served
+# faster
+def create_startup_session():
+    task = asyncio.create_task(create_segment_session())
+    print("Created task using create_segment_session()")
+    print(task)
+    session_manager.create_session(task, PREPARED_SESSION_ID)
+
+# Create a lifestyle function
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    create_startup_session()
+    print("Startup event triggered: prepared segmentation session created.")
+    yield
+
+# Create the app
+app = FastAPI(lifespan=lifespan)
+print("FastAPI app created with lifespan context manager.")
 
 @app.get("/status")
 def check_status():

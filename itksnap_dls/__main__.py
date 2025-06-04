@@ -45,6 +45,16 @@ def get_args():
     parser.add_argument("-k", "--insecure", 
                         action="store_true",
                         help="Skip HTTPS certificate verification")
+    
+    # Force color output
+    parser.add_argument("--use-colors",
+                        action="store_true",
+                        help="Force colored output in the terminal")
+
+    # Run initial setup, including downloading models, bot not the server
+    parser.add_argument("--setup-only",
+                        action="store_true",
+                        help="Run initial setup, including downloading models, but not starting the server")
 
     return parser.parse_args()
 
@@ -114,8 +124,19 @@ if __name__ == "__main__":
     global_config.device = args.device
     global_config.hf_models_path = args.models_path
     global_config.https_verify = args.insecure
+    
+    # Special mode to run setup only
+    if args.setup_only:
+        from .segment import SegmentSession
+        print(f'Running setup only, downloading models to {args.models_path}')
+        segment_session = SegmentSession(config=global_config)
+        print(f'Setup complete. Models are available at {segment_session.model_path}')
+        exit(0)
 
     # Print how to access the server
     print_banner(args.host, port=args.port)
-
-    uvicorn.run(app, host=args.host, port=args.port)
+    
+    if args.use_colors:
+        uvicorn.run(app, host=args.host, port=args.port, use_colors=True)
+    else:
+        uvicorn.run(app, host=args.host, port=args.port)
