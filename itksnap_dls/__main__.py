@@ -46,6 +46,11 @@ def get_args():
                         action="store_true",
                         help="Skip HTTPS certificate verification")
     
+    # Use ngrok for tunneling
+    parser.add_argument("-N", "--ngrok", 
+                        action="store_true",
+                        help="Create a public URL using ngrok for the server. An NGROK_AUTHTOKEN environment variable must be set to use this feature.")
+    
     # Force color output
     parser.add_argument("--use-colors",
                         action="store_true",
@@ -98,6 +103,19 @@ def print_banner(host: str, port: int):
     print(f'******************************************************************************')
 
 
+def print_banner_ngrok(url: str):
+    print(f'***************** ITK-SNAP Deep Learning Extensions Server ******************')
+
+    print_gpu_info()
+    
+    # Remove https:// from the URL
+    if url.startswith("https://"):
+        url = url[8:]
+    
+    print(f'    Use one of the following settings in ITK-SNAP to connect to this server:')
+    print(f'        Server: {url}  Port: {443}')
+
+    print(f'******************************************************************************')
 
 def get_access_urls(host: str, port: int):
 
@@ -132,9 +150,31 @@ if __name__ == "__main__":
         segment_session = SegmentSession(config=global_config)
         print(f'Setup complete. Models are available at {segment_session.model_path}')
         exit(0)
+        
+    # Create an ngrok session if requested
+    if args.ngrok:
+        
+        # Check if the NGROK_AUTHTOKEN environment variable is set
+        import os
+        if 'NGROK_AUTHTOKEN' not in os.environ:
+            print('NGROK_AUTHTOKEN environment variable is not set. Please set it to use ngrok.')
+            print(' - Sign up for an account: https://dashboard.ngrok.com/signup ')
+            print(' - Obtain your authtoken: https://dashboard.ngrok.com/get-started/your-authtoken ')
+            print(' - Set environment variable NGROK_AUTHTOKEN to your authtoken value.')
+            exit(1)
+        
+        import ngrok
+        try:
+            listener = ngrok.forward(args.port, authtoken_from_env=True)
+        except ValueError as e:
+            print(f'Error starting ngrok: {e}')
+            exit(1)
+        print_banner_ngrok(listener.url())
+        
+    else:
 
-    # Print how to access the server
-    print_banner(args.host, port=args.port)
+        # Print how to access the server
+        print_banner(args.host, port=args.port)
     
     if args.use_colors:
         uvicorn.run(app, host=args.host, port=args.port, use_colors=True)
