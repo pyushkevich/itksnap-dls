@@ -14,12 +14,12 @@ Link: [![arXiv](https://img.shields.io/badge/arXiv-2503.08373-b31b1b.svg)](https
 Future releases of ITK-SNAP DLS may include additional AI-based segmentation and registration tools.  
 
 ## Requirements
-An NVidia GPU is required to run the ITK-SNAP DLS. 
+An NVidia GPU is required to run the ITK-SNAP DLS. The instructions below include several use cases, including when you have a GPU on your computer, on another computer on your local network, or when you want to run ITK-SNAP DLS on a cloud-based NVidia GPU (via Google Colab).
 
 There are two modes of operation for ITK-SNAP DLS:
 
 - **Local Mode:**: ITK-SNAP and the deep learning extension run on the same computer, which has an NVidia GPU. 
-- **Remote Mode:** ITK-SNAP runs on a computer without an NVidia GPU, but connects to a remote server that has an NVidia GPU. The remote server runs the deep learning extension.
+- **Remote Mode:** ITK-SNAP runs on a computer without an NVidia GPU, but connects to a remote (or cloud-based) server that has an NVidia GPU. The remote server runs the deep learning extension.
 
 In both cases, the deep learning extension runs as a separate Python program (a "service"). ITK-SNAP connects to this service using the network (HTTP protocol) to use the AI-based segmentation tools.
 
@@ -53,10 +53,23 @@ You are now ready to use nnInteractive from ITK-SNAP. Please see the section bel
 
 ## Using ITK-SNAP DLS in Remote Mode
 
-**Note:** Follow these instructions if you are running ITK-SNAP on a computer without an NVidia GPU, but can access a NVidia GPU server on your local network.
+**Note:** Follow these instructions if you are running ITK-SNAP on a computer without an NVidia GPU, but can access a NVidia GPU server on your local network or in the cloud. 
 
-### Installation 
+### Using ITK-SNAP DLS in Remote Mode on Google Colab
 
+Follow the instructions in this [this Google Colab notebook](https://colab.research.google.com/drive/1AtB2yZgB6KUHb6e0LHVVE9pjsaLANVr5?usp=sharing). In the output of the server, you should see the following banner:
+
+```
+***************** ITK-SNAP Deep Learning Extensions Server ******************
+    Using GPU 0: Tesla T4
+    Use one of the following settings in ITK-SNAP to connect to this server:
+        Server: e352-34-91-118-53.ngrok-free.app  Port: 443
+******************************************************************************
+```
+
+Copy the server address and port number, and then skip ahead to the [Launching the ITK-SNAP DLS service](#Launching-the-ITK-SNAP-DLS-service).
+
+### Using ITK-SNAP DLS in Remote Mode a GPU server on your Local Network
 * Login to the GPU server using SSH or other remote access method. 
 * Ensure that NVidia CUDA drivers are installed and up to date on the GPU server
 * Ensure that Python is available on the GPU server
@@ -111,7 +124,7 @@ Pressing "Yes, configure" will open the Preferences Dialog, "AI Extensions" page
 
 ![Config window](images/dlsconfig_initstate.png)
 
-Select "Network connection to GPU server" under "Connection type". Enter the server address and port number provided by the `itksnap-dls` service. The default port is `8911`, but you can change it using the `-p` option when running `itksnap-dls`.
+Select "Network connection to GPU server" under "Connection type". Enter the server address and port number provided by the `itksnap-dls` service. If running `itksnap-dls` in Google Colab, the port number will be `443`. If running on a local GPU server, the default port is `8911`, but you can change it using the `-p` option when running `itksnap-dls`.
 
 ![Config window](images/dlsconfig_edit.png)
 
