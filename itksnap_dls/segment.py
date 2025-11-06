@@ -1,4 +1,4 @@
-from huggingface_hub import snapshot_download, configure_http_backend
+import huggingface_hub as hf
 import torch
 import SimpleITK as sitk
 import os
@@ -14,10 +14,19 @@ class SegmentServerConfig:
 # Global config
 global_config = SegmentServerConfig()
 
-def backend_factory() -> requests.Session:
-    session = requests.Session()
-    session.verify = not global_config.https_verify
-    return session
+# Configure the HTTP backend to use requests with custom settings
+def config_hf_backend():
+    if hasattr(hf, 'configure_http_backend'):
+        import requests
+        def backend_factory_requests() -> requests.Session:
+            session = requests.Session()
+            session.verify = not global_config.https_verify
+            return session
+        hf.configure_http_backend(backend_factory=backend_factory_requests)
+    elif hasattr(hf, 'set_client_factory'):
+        import httpx
+        hf.set_client_factory(lambda : httpx.Client(verify=global_config.https_verify))
+        
 
 class SegmentSession:
     
@@ -45,10 +54,10 @@ class SegmentSession:
         )
         
         # Set it as the default session factory - to allow -k flag
-        configure_http_backend(backend_factory=backend_factory)
+        config_hf_backend()
 
         # Download the model, optionally
-        self.model_path = snapshot_download(
+        self.model_path = hf.snapshot_download(
             repo_id=self.NNINTERACTIVE_REPO_ID,
             allow_patterns=[f"{self.NNINTERACTIVE_MODEL_NAME}/*"],
             local_dir=config.hf_models_path)
