@@ -1,6 +1,6 @@
 [project]
 name = "itksnap-dls"
-version = "0.0.9"
+version = "0.0.10"
 authors = [
   { name="Paul Yushkevich", email="pyushkevich@gmail.com" },
 ]
@@ -10,7 +10,8 @@ dependencies = [
     'nnInteractive',
     'huggingface_hub',
     'ngrok',
-    'torch<=2.8.0'
+    'torch<=2.8.0',
+    'torchaudio<=2.8.0'
 ]
 readme = "README.md"
 requires-python = ">=3.10"
