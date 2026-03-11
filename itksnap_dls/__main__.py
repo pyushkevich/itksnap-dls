@@ -46,6 +46,11 @@ def get_args():
                         action="store_true",
                         help="Skip HTTPS certificate verification")
     
+    # Skip network altogether
+    parser.add_argument("--no-network", 
+                        action="store_true",
+                        help="Dot try connecting to external networks to download remote models")
+    
     # Use ngrok for tunneling
     parser.add_argument("-N", "--ngrok", 
                         action="store_true",
@@ -141,14 +146,17 @@ if __name__ == "__main__":
     args = get_args()
     global_config.device = args.device
     global_config.hf_models_path = args.models_path
-    global_config.https_verify = args.insecure
+    global_config.https_verify = not args.insecure
+    global_config.https_enabled = not args.no_network
     
     # Special mode to run setup only
     if args.setup_only:
-        from .segment import SegmentSession
+        from .segment import nnInteractiveWrapper, SAM2Wrapper
         print(f'Running setup only, downloading models to {args.models_path}')
-        segment_session = SegmentSession(config=global_config)
-        print(f'Setup complete. Models are available at {segment_session.model_path}')
+        nni = nnInteractiveWrapper(config=global_config)
+        print(f'nnInteractive Setup complete. Models are available at {nni.model_path}')
+        sam = SAM2Wrapper(config=global_config)
+        print(f'SAM Setup complete.')
         exit(0)
         
     # Create an ngrok session if requested
