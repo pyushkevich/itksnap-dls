@@ -8,8 +8,8 @@ class SessionManager:
     def __init__(self):
         self.sessions = {}
 
-    def create_session(self, session_data, user_session_id=str(uuid.uuid4())):
-        session_id = user_session_id
+    def create_session(self, session_data, user_session_id=None):
+        session_id = user_session_id if user_session_id is not None else str(uuid.uuid4())
         self.sessions[session_id] = session_data
         return session_id
 
