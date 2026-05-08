@@ -1,6 +1,6 @@
 [project]
 name = "itksnap-dls"
-version = "0.1.0"
+version = "0.1.1"
 authors = [
   { name="Paul Yushkevich", email="pyushkevich@gmail.com" },
 ]
@@ -9,6 +9,7 @@ dependencies = [
     'fastapi[standard]',
     'nnInteractive',
     'huggingface_hub',
+    'transformers',
     'ngrok',
     'torch<=2.8.0',
     'torchaudio<=2.8.0'
