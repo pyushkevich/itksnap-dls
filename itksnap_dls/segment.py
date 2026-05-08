@@ -6,7 +6,7 @@ import requests
 import typing
 import json
 import numpy as np
-from transformers import Sam2Processor, Sam2Model, infer_device
+from transformers import Sam2Processor, Sam2Model
 
 # Server configuration
 class SegmentServerConfig:
