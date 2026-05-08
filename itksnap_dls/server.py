@@ -84,7 +84,7 @@ async def start_session_v2(model_id: str):
 
 @app.get("/start_session")
 async def start_session():
-    return start_session_v2(model_id=nnInteractiveWrapper.HF_REPO_ID)
+    return await start_session_v2(model_id=nnInteractiveWrapper.ID)
 
 
 def read_sitk_image(contents, metadata):
