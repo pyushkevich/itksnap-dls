@@ -58,7 +58,7 @@ class ModelWrapper:
 
 class nnInteractiveWrapper(ModelWrapper):
     # Huggingface properties
-    HF_REPO_ID = "nnInteractive/nnInteractive"
+    HF_REPO_ID = "MIC-DKFZ/nnInteractive"
     HF_MODEL_NAME = "nnInteractive_v1.0" 
     
     # Model descriptor
