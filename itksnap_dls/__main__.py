@@ -66,10 +66,17 @@ def get_args():
                         action="store_true",
                         help="Run initial setup, including downloading models, but not starting the server")
 
+    # Replace deep learning models with fast stand-ins for testing
+    parser.add_argument("--mock-models",
+                        action="store_true",
+                        help="Replace deep learning models with fast CPU stand-ins (e.g., dilating scribbles) for testing")
+
     return parser.parse_args()
 
 def print_gpu_info():
-    if torch.cuda.is_available():
+    if global_config.mock_models:
+        print(f"    Mock models enabled, no deep learning inference will be performed.")
+    elif torch.cuda.is_available():
         device = torch.device("cuda")
         gpu_name = torch.cuda.get_device_name(device)
         gpu_index = torch.cuda.current_device()
@@ -148,6 +155,7 @@ if __name__ == "__main__":
     global_config.hf_models_path = args.models_path
     global_config.https_verify = not args.insecure
     global_config.https_enabled = not args.no_network
+    global_config.mock_models = args.mock_models
     
     # Special mode to run setup only
     if args.setup_only:

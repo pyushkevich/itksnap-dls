@@ -74,9 +74,15 @@ addresses, and starts Uvicorn.
 | `-N`, `--ngrok`        | off                                | Open a public ngrok tunnel; needs `NGROK_AUTHTOKEN`   |
 | `--use-colors`         | off                                | Force colored terminal output                         |
 | `--setup-only`         | off                                | Download models and exit without serving              |
+| `--mock-models`        | off                                | Replace models with fast CPU stand-ins for testing    |
 
 `--setup-only` exists so that a machine can pre-fetch weights during provisioning rather
 than on a user's first click.
+
+`--mock-models` swaps each model for a stand-in with the same ID and capabilities that does
+no inference: point clicks paint a small ball, scribbles are dilated, and lassos are used
+as-is. This makes it possible to test the server and the ITK-SNAP client on a machine
+without a GPU.
 
 ### `segment.py` — configuration and models
 
@@ -191,6 +197,7 @@ pip install -e ".[test]"
 
 python -m itksnap_dls --port 8911                    # run the server
 python -m itksnap_dls --setup-only                   # just download models
+python -m itksnap_dls --mock-models                  # run without GPU/models
 pytest                                               # fast tests
 ```
 

@@ -6,7 +6,6 @@ import requests
 import typing
 import json
 import numpy as np
-from transformers import Sam2Processor, Sam2Model
 
 # Server configuration
 class SegmentServerConfig:
@@ -15,6 +14,7 @@ class SegmentServerConfig:
     n_cpu_threads = 2
     https_verify = True
     https_enabled = True
+    mock_models = False
 
 # Global config
 global_config = SegmentServerConfig()
@@ -157,6 +157,9 @@ class SAM2Wrapper(ModelWrapper):
         super().__init__()
         self.config = config
 
+        # Import transformers here to prevent slow startup
+        from transformers import Sam2Processor, Sam2Model
+
         # Set it as the default session factory - to allow -k flag
         config_hf_backend()
         
@@ -242,11 +245,88 @@ class SAM2Wrapper(ModelWrapper):
         mask_itk.CopyInformation(self.image_itk)
         return mask_itk
 
+class MockModelWrapper(ModelWrapper):
+    """
+    Fast stand-in for a deep learning model, used to test the server and the
+    ITK-SNAP client without a GPU. No inference is performed: point clicks paint
+    a ball around the point, scribbles are dilated, and lassos are used as-is.
+    Foreground interactions add to the mask, background interactions erase it.
+    """
+    POINT_RADIUS = 5
+    SCRIBBLE_RADIUS = 2
+
+    def __init__(self, config: SegmentServerConfig = global_config):
+        super().__init__()
+        print(f'Mock {self.ID} model created, no deep learning inference will be performed')
+
+    def set_image(self, sitk_image: sitk.Image):
+        self.input_image = sitk_image
+        self.mask = np.zeros(sitk_image.GetSize()[::-1], dtype=np.uint8)
+        print(f'Image set of size {self.mask.shape}')
+
+    def _apply(self, region, include_interaction):
+        if include_interaction:
+            self.mask[region] = 1
+        else:
+            self.mask[region] = 0
+
+    def _get_interaction_array(self, sitk_image):
+        arr = sitk.GetArrayFromImage(sitk_image) > 0
+        if arr.shape != self.mask.shape:
+            raise ValueError(f"Interaction image shape {arr.shape} does not match image shape {self.mask.shape}")
+        return arr
+
+    def add_point_interaction(self, index_itk, include_interaction):
+        # Paint a ball within the bounding box of the point, in numpy index order
+        center = np.array(index_itk[:self.mask.ndim][::-1])
+        lo = np.maximum(center - self.POINT_RADIUS, 0)
+        hi = np.minimum(center + self.POINT_RADIUS + 1, self.mask.shape)
+        if np.any(lo >= hi):
+            return
+        box = tuple(slice(l, h) for l, h in zip(lo, hi))
+        grid = np.ogrid[box]
+        ball = sum((g - c) ** 2 for g, c in zip(grid, center)) <= self.POINT_RADIUS ** 2
+        self.mask[box][ball] = 1 if include_interaction else 0
+
+    def add_scribble_interaction(self, sitk_image, include_interaction):
+        arr = self._get_interaction_array(sitk_image)
+        dilated = sitk.BinaryDilate(sitk.GetImageFromArray(arr.astype(np.uint8)),
+                                    [self.SCRIBBLE_RADIUS] * arr.ndim)
+        self._apply(sitk.GetArrayFromImage(dilated) > 0, include_interaction)
+
+    def add_lasso_interaction(self, sitk_image, include_interaction):
+        self._apply(self._get_interaction_array(sitk_image), include_interaction)
+
+    def reset_interactions(self):
+        self.mask[:] = 0
+
+    def get_result(self) -> sitk.Image:
+        result = sitk.GetImageFromArray(self.mask)
+        result.CopyInformation(self.input_image)
+        return result
+
+class nnInteractiveMockWrapper(MockModelWrapper):
+    ID = nnInteractiveWrapper.ID
+    DIMENSIONS = nnInteractiveWrapper.DIMENSIONS
+    CHANNELS = nnInteractiveWrapper.CHANNELS
+    INTERACTIONS = nnInteractiveWrapper.INTERACTIONS
+
+class SAM2MockWrapper(MockModelWrapper):
+    ID = SAM2Wrapper.ID
+    DIMENSIONS = SAM2Wrapper.DIMENSIONS
+    CHANNELS = SAM2Wrapper.CHANNELS
+    INTERACTIONS = SAM2Wrapper.INTERACTIONS
+
+def get_model_classes(config: SegmentServerConfig = global_config) -> list[type[ModelWrapper]]:
+    """Return the model wrapper classes, or their mock stand-ins in mock mode."""
+    if config.mock_models:
+        return [ nnInteractiveMockWrapper, SAM2MockWrapper ]
+    return [ nnInteractiveWrapper, SAM2Wrapper ]
+
 def get_model_listing():
     """Return a list of available models and their capabilities."""
-    models = [ nnInteractiveWrapper, SAM2Wrapper ]
     model_list = []
-    for model in models:
+    for model in get_model_classes():
         model_info = {
             "id": model.ID,
             "channels": model.CHANNELS,
@@ -259,10 +339,7 @@ def get_model_listing():
 
 def instantiate_model_wrapper(repo_id: str, config: SegmentServerConfig = global_config) -> ModelWrapper:
     """Instantiate a model wrapper based on the given repo ID."""
-    if repo_id == nnInteractiveWrapper.ID:
-        return nnInteractiveWrapper(config)
-    elif repo_id == SAM2Wrapper.ID:
-        return SAM2Wrapper(config)
-    else:
-        raise ValueError(f"Unknown model repo ID: {repo_id}")
-
+    for model in get_model_classes(config):
+        if repo_id == model.ID:
+            return model(config)
+    raise ValueError(f"Unknown model repo ID: {repo_id}")
