@@ -91,9 +91,14 @@ def print_banner(host: str, port: int):
     urls = []
     
     # Get all network interfaces
+    # The hostname may not resolve (e.g., a Mac with no DNS entry for it), in which
+    # case only the loopback address is listed
     hostname = socket.gethostname()
-    local_ips = socket.getaddrinfo(hostname, None)
-    unique_ips = set(ip[-1][0] for ip in local_ips)
+    try:
+        local_ips = socket.getaddrinfo(hostname, None)
+        unique_ips = set(ip[-1][0] for ip in local_ips)
+    except socket.gaierror:
+        unique_ips = {'127.0.0.1'}
     
     for ip in unique_ips:
         ip_obj = ipaddress.ip_address(ip)

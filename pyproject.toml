@@ -1,6 +1,6 @@
 [project]
 name = "itksnap-dls"
-version = "0.1.5"
+version = "0.1.6"
 authors = [
   { name="Paul Yushkevich", email="pyushkevich@gmail.com" },
 ]
@@ -11,8 +11,7 @@ dependencies = [
     'huggingface_hub',
     'transformers',
     'ngrok',
-    'torch<=2.8.0',
-    'torchaudio<=2.8.0'
+    'torch'
 ]
 readme = "README.md"
 requires-python = ">=3.10"
