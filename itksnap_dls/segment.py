@@ -30,10 +30,18 @@ def config_hf_backend():
             session.verify = global_config.https_verify
             return session
         hf.configure_http_backend(backend_factory=backend_factory_requests)
-    elif hasattr(hf, 'set_client_factory'):
-        import httpx
-        print(f'Configuring Huggingface HTTP client, verify={global_config.https_verify}')
-        hf.set_client_factory(lambda : httpx.Client(verify=global_config.https_verify))
+    elif hasattr(hf, 'set_client_factory') and not global_config.https_verify:
+        # Newer huggingface_hub uses httpx (1.x) or httpx2 (2.x), and its default client
+        # is fine unless HTTPS verification is disabled. A replacement client must be built
+        # like the default one: Huggingface answers downloads with redirects, so without
+        # follow_redirects=True every download fails with '307 Temporary Redirect'
+        from huggingface_hub.utils import _http
+        httpx_module = getattr(_http, 'httpx2', None) or _http.httpx
+        hf.set_client_factory(lambda : httpx_module.Client(
+            event_hooks={"request": [_http.hf_request_event_hook]},
+            follow_redirects=True,
+            timeout=None,
+            verify=global_config.https_verify))
     if not global_config.https_verify:
         urllib3.disable_warnings()
         print('*** Warning: HTTPS verification is disabled! ***')
